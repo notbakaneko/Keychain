@@ -39,13 +39,15 @@ private func stringFromValueData(dictionary: KeychainDictionaryType) -> String? 
     }
 }
 
-public struct GenericPassword: KeychainItemType {
+public struct GenericPassword: KeychainItemType, KeychainItemWithData {
     // kSecAttrAccount, kSecAttrService
     public typealias UniqueProperty = (account: String, service: String)
     public var unique: UniqueProperty
     public var itemDescription: String?
     public var comment: String?
     public var password: String?
+
+    public var includeData = false
 
     public init(_ unique: UniqueProperty) {
         self.unique = unique
@@ -83,18 +85,23 @@ public struct GenericPassword: KeychainItemType {
         dictionary[kSecAttrComment.string] = comment
 
         dictionary[kSecValueData.string] = password?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: false)
+        if includeData {
+            dictionary[kSecReturnData.string] = true
+        }
 
         return dictionary
     }
 }
 
-public struct InternetPassword: KeychainItemType {
+public struct InternetPassword: KeychainItemType, KeychainItemWithData {
     // kSecAttrAccount, kSecAttrSecurityDomain, kSecAttrServer, kSecAttrProtocol, kSecAttrAuthenticationType, kSecAttrPort, kSecAttrPath
     public typealias UniqueProperty = (account: String, domain: String, server: String, protocolType: String, authenticationType: String, port: Int, path: String)
     public var unique: UniqueProperty
     public var itemDescription: String?
     public var comment: String?
     public var password: String?
+
+    public var includeData = false
 
     public init?(object: AnyObject?) {
         if let dictionary = object as? KeychainDictionaryType {
@@ -139,6 +146,9 @@ public struct InternetPassword: KeychainItemType {
         dictionary[kSecAttrComment.string] = comment
 
         dictionary[kSecValueData.string] = password?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: false)
+        if includeData {
+            dictionary[kSecReturnData.string] = true
+        }
 
         return dictionary
     }

@@ -17,6 +17,10 @@ public protocol KeychainItemType {
     init?(dictionary: KeychainDictionaryType)
 }
 
+public protocol KeychainItemWithData {
+    var includeData: Bool { get }
+}
+
 public protocol ICloudSyncable {
     var syncable: Bool { get set }
     func syncable(flag: Bool) -> Self

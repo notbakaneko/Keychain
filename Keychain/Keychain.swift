@@ -85,6 +85,26 @@ public struct Keychain {
         return KeychainQueryResult(status: status, result: result?.takeUnretainedValue())
     }
 
+    public static func addOrUpdate<T: KeychainItemType>(item: T) -> KeychainQueryResult {
+        let findResult = findOne(item)
+        if findResult.status == 0 {
+            // update
+            return update(item)
+        } else {
+            // add
+            return add(item)
+        }
+    }
+
+    public static func delete<T: KeychainItemType>(item: T) -> KeychainQueryResult {
+        return delete(item.keychainDictionary)
+    }
+
+    public static func delete(query: KeychainDictionaryType) -> KeychainQueryResult {
+        let status = SecItemDelete(query)
+        return KeychainQueryResult(status: status, result: nil)
+    }
+
 
     public func map() -> AnyObject? {
         var result: Unmanaged<AnyObject>?
