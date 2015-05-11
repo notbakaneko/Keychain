@@ -10,11 +10,14 @@ import Foundation
 import Security
 
 extension CFStringRef {
-    var string: String { return self as! String }
+    var string: String { return self as String }
 }
 
-public typealias KeychainDictionaryType = [String:AnyObject]
-
+// laziness operator
+infix operator => { }
+func => <T>(lhs: AnyObject?, inout rhs: T?) {
+    rhs = lhs as? T
+}
 
 public enum KeyAlgorithm : String {
     case EC = "EllipticCurve"
@@ -28,30 +31,13 @@ public enum KeyAlgorithm : String {
     }
 }
 
-
-public struct GenericKeychainItem: KeychainItemType {
-    public typealias UniqueProperty = (service: String, account: String)
-    public var service: String
-    public var group: String?
-
-    public var label: String?
-    public var description: String?
-    public var comment: String?
-    public var data: NSData
-
-    public init(service: String, data: NSData, group: String? = nil) {
-        self.service = service
-        self.data = data
-        self.group = group
-    }
-
-    public var keychainDictionary: KeychainDictionaryType {
-        var dictionary = KeychainDictionaryType()
-
-        return dictionary
+private func stringFromValueData(dictionary: KeychainDictionaryType) -> String? {
+    if let data = dictionary[kSecValueData.string] as? NSData {
+        return NSString(data: data, encoding: NSUTF8StringEncoding) as? String
+    } else {
+        return nil
     }
 }
-
 
 public struct GenericPassword: KeychainItemType {
     // kSecAttrAccount, kSecAttrService
@@ -59,9 +45,31 @@ public struct GenericPassword: KeychainItemType {
     public var unique: UniqueProperty
     public var itemDescription: String?
     public var comment: String?
+    public var password: String?
 
     public init(_ unique: UniqueProperty) {
         self.unique = unique
+    }
+
+    public init?(object: AnyObject?) {
+        if let dictionary = object as? KeychainDictionaryType {
+            self.init(dictionary: dictionary)
+        } else {
+            return nil
+        }
+    }
+
+    public init?(dictionary: KeychainDictionaryType) {
+        if let account = dictionary[kSecAttrAccount.string] as? String, service = dictionary[kSecAttrService.string] as? String {
+            unique = UniqueProperty(account, service)
+        } else {
+            return nil
+        }
+
+        dictionary[kSecAttrDescription.string] => itemDescription
+        dictionary[kSecAttrComment.string] => comment
+
+        password = stringFromValueData(dictionary)
     }
 
     public var keychainDictionary: KeychainDictionaryType {
@@ -74,6 +82,8 @@ public struct GenericPassword: KeychainItemType {
         dictionary[kSecAttrDescription.string] = itemDescription
         dictionary[kSecAttrComment.string] = comment
 
+        dictionary[kSecValueData.string] = password?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: false)
+
         return dictionary
     }
 }
@@ -84,6 +94,34 @@ public struct InternetPassword: KeychainItemType {
     public var unique: UniqueProperty
     public var itemDescription: String?
     public var comment: String?
+    public var password: String?
+
+    public init?(object: AnyObject?) {
+        if let dictionary = object as? KeychainDictionaryType {
+            self.init(dictionary: dictionary)
+        } else {
+            return nil
+        }
+    }
+
+    public init?(dictionary: KeychainDictionaryType) {
+        if let account = dictionary[kSecAttrAccount.string] as? String,
+            domain = dictionary[kSecAttrSecurityDomain.string] as? String,
+            server = dictionary[kSecAttrServer.string] as? String,
+            protocolType = dictionary[kSecAttrProtocol.string] as? String,
+            authenticationType = dictionary[kSecAttrAuthenticationType.string] as? String,
+            port = dictionary[kSecAttrPort.string] as? Int,
+            path = dictionary[kSecAttrPath.string] as? String {
+                unique = UniqueProperty(account, domain, server, protocolType, authenticationType, port, path)
+        } else {
+            return nil
+        }
+
+        dictionary[kSecAttrDescription.string] => itemDescription
+        dictionary[kSecAttrComment.string] => comment
+
+        password = stringFromValueData(dictionary)
+    }
 
     public var keychainDictionary: KeychainDictionaryType {
         var dictionary = KeychainDictionaryType()
@@ -100,6 +138,8 @@ public struct InternetPassword: KeychainItemType {
         dictionary[kSecAttrDescription.string] = itemDescription
         dictionary[kSecAttrComment.string] = comment
 
+        dictionary[kSecValueData.string] = password?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: false)
+
         return dictionary
     }
     
@@ -112,6 +152,30 @@ public struct Key: KeychainItemType {
     public var unique: UniqueProperty
     public var itemDescription: String?
     public var comment: String?
+
+    public init?(object: AnyObject?) {
+        if let dictionary = object as? KeychainDictionaryType {
+            self.init(dictionary: dictionary)
+        } else {
+            return nil
+        }
+    }
+
+    public init?(dictionary: KeychainDictionaryType) {
+        if let label = dictionary[kSecAttrApplicationLabel.string] as? String,
+            tag = dictionary[kSecAttrApplicationTag.string] as? String,
+            keyType = dictionary[kSecAttrKeyType.string] as? String,
+            algorithm = KeyAlgorithm(rawValue: keyType),
+            bitSize = dictionary[kSecAttrKeySizeInBits.string] as? Int,
+            effectiveKeySize = dictionary[kSecAttrEffectiveKeySize.string] as? Int {
+                unique = UniqueProperty(label, tag, algorithm, bitSize, effectiveKeySize)
+        } else {
+            return nil
+        }
+
+        dictionary[kSecAttrDescription.string] => itemDescription
+        dictionary[kSecAttrComment.string] => comment
+    }
 
     public var keychainDictionary: KeychainDictionaryType {
         var dictionary = KeychainDictionaryType()
@@ -129,17 +193,3 @@ public struct Key: KeychainItemType {
         return dictionary
     }
 }
-
-
-//extension Dictionary {
-//    subscript(key: CFStringRef) -> Value? {
-//        get {
-//            return self[key as! String]
-//        }
-//
-//        set(newValue) {
-//            self[key as! String] = newValue
-//        }
-//    }
-//}
-

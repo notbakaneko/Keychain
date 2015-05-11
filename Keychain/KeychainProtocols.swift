@@ -8,10 +8,13 @@
 
 import Foundation
 
+public typealias KeychainDictionaryType = [String:AnyObject]
 
 public protocol KeychainItemType {
     typealias UniqueProperty
     var keychainDictionary: KeychainDictionaryType { get }
+
+    init?(dictionary: KeychainDictionaryType)
 }
 
 public protocol ICloudSyncable {
