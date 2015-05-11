@@ -15,6 +15,7 @@ public protocol KeychainItemType {
     var keychainDictionary: KeychainDictionaryType { get }
 
     init?(dictionary: KeychainDictionaryType)
+    init?(object: AnyObject?)
 }
 
 public protocol KeychainItemWithData {
