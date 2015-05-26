@@ -41,7 +41,7 @@ class KeychainTests: XCTestCase {
         query[kSecReturnAttributes as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitAll
 
-        let result: AnyObject? = Keychain.find(query)
+        let result: KeychainQueryResult = Keychain.find(query)
     }
 
 }
